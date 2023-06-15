@@ -89,14 +89,11 @@ public class ExcelToCSV {
             for (int i = 0; i<rownum; i++) {
                 row = sheet.getRow(i);
                 for (int j = 0; j < colnum; j++) {
-
                     cellData = (String) getCellFormatValue(row.getCell(j));
-
                     buffer +=cellData;
                 }
                 buffer = buffer.substring(0, buffer.lastIndexOf(",")).toString();
                 buffer += "\n";
-
             }
 
             String savePath = filePathAndName;
