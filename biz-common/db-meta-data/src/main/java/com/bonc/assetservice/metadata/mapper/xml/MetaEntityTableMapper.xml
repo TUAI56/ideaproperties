@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaEntityTableMapper">
+
+    <select id="getEntityTableAcct" resultType="com.bonc.assetservice.metadata.appmodel.EntityTableAcct">
+        select
+            et.table_code tableCode,
+            Max(td.acct_date) acct
+        from meta_entity_table et join meta_table_date td on et.table_code = td.table_code
+        where et.table_code in (
+                <foreach item="tableCode" collection="tableCodes" separator=",">
+                    #{tableCode}
+                </foreach>
+        )
+        group by et.table_code
+    </select>
+</mapper>

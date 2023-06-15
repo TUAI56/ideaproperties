@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.apiserver.data.mapper.UserDatasetMapper">
+
+    <select id="getDataSetCodeAndColum" resultType="com.bonc.assetservice.apiserver.data.model.DataSetCodeAndColum">
+        SELECT
+        dataset_id AS dataSetId,
+        entity_table_code AS tableCode,
+        join_column_code AS joinColumnCode
+        FROM
+        user_dataset
+        WHERE dataset_id IN
+        <foreach collection="dataSetIds" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+
+    </select>
+
+
+    <select id="getDataSetByDatasetId" resultType="com.bonc.assetservice.apiserver.data.model.DataSetCodeAndColum">
+        SELECT
+            dataset_id AS dataSetId,
+            entity_table_code AS tableCode,
+            join_column_code AS joinColumnCode
+        FROM
+            user_dataset
+        WHERE dataset_id  = #{datasetId}
+    </select>
+
+    <select id="getDataSetByDatasetTable" resultType="com.bonc.assetservice.apiserver.data.model.DataSetCodeAndColum">
+        SELECT
+        dataset_id AS dataSetId,
+        entity_table_code AS tableCode,
+        join_column_code AS joinColumnCode
+        FROM
+        user_dataset
+        WHERE entity_table_code IN
+        <foreach collection="dataSetTableNames" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <groupId>com.bonc.boot</groupId>
+    <artifactId>bonc-parent</artifactId>
+    <version>1.6.2</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>asset-sync</artifactId>
+  <packaging>jar</packaging>
+  <name>${project.artifactId}</name>
+  <description>与资产平台进行同步的微服务</description>
+
+  <dependencies>
+    <!-- spring boot 配置所需依赖 -->
+    <!-- Web 相关 -->
+    <dependency>
+      <groupId>com.bonc.boot</groupId>
+      <artifactId>bonc-spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- spring boot 配置所需依赖 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <!-- DB 相关 -->
+    <dependency>
+      <groupId>com.bonc.boot</groupId>
+      <artifactId>bonc-spring-boot-starter-mybatis</artifactId>
+    </dependency>
+
+    <!--<dependency>
+      <groupId>com.bonc.boot</groupId>
+      <artifactId>bonc-spring-boot-starter-redis</artifactId>
+    </dependency>-->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>3.3.0</version>
+    </dependency>
+
+    <!-- 通用的一些工具类等部分 -->
+    <dependency>
+      <groupId>com.bonc.boot</groupId>
+      <artifactId>bonc-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.bonc</groupId>
+      <artifactId>bonc-security-base</artifactId>
+      <version>1.0.6-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.bonc</groupId>
+          <artifactId>bonc-jdbc</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.github.jsqlparser</groupId>
+          <artifactId>jsqlparser</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>javax.servlet</groupId>
+          <artifactId>servlet-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>dom4j</groupId>
+          <artifactId>dom4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.bonc</groupId>
+          <artifactId>bonc-sso-client</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>com.auth0</groupId>
+      <artifactId>java-jwt</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>net.sf.json-lib</groupId>
+      <artifactId>json-lib</artifactId>
+      <version>2.4</version>
+      <classifier>jdk15</classifier>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ulisesbocchio</groupId>
+      <artifactId>jasypt-spring-boot</artifactId>
+      <version>3.0.4</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!--    与rocketMQ 的集成   -->
+    <dependency>
+      <groupId>org.apache.rocketmq</groupId>
+      <artifactId>rocketmq-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.rocketmq</groupId>
+      <artifactId>rocketmq-acl</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.bonc.boot</groupId>
+      <artifactId>db-meta-data</artifactId>
+      <version>1.6.2</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+
+  </dependencies>
+
+  <build>
+    <!-- 设置构建的 jar 包名 -->
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>2.6.7</version>  <!-- 如果 spring.boot.version 版本修改，则这里也要跟着修改 -->
+        <configuration>
+          <!-- maven打包时会将外部引入的jar包打到项目中 -->
+          <includeSystemScope>true</includeSystemScope>
+          <includes>
+            <!-- 不存在的include引用，相当于排除所有maven依赖jar，没有任何三方jar文件打入输出jar -->
+            <include>
+              <groupId>com.bonc.boot</groupId>
+              <artifactId>db-meta-data</artifactId>
+            </include>
+          </includes>
+          <layout>ZIP</layout>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal> <!-- 将引入的 jar 打入其中 -->
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- 拷贝第三方依赖文件到指定目录 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <!-- 拷贝项目依赖包到指定目录下 -->
+              <outputDirectory>target/libs</outputDirectory>
+              <!-- 是否排除间接依赖，间接依赖也要拷贝 -->
+              <excludeTransitive>false</excludeTransitive>
+              <stripVersion>false</stripVersion>
+              <includeScope>runtime</includeScope>
+              <!-- 打包需要排出的的jar -->
+              <excludeArtifactIds>
+                db-meta-data
+              </excludeArtifactIds>
+              <silent>true</silent>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

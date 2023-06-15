@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.bonc.framework.apilog.config.YudaoApiLogAutoConfiguration,\
+  com.bonc.framework.jackson.config.YudaoJacksonAutoConfiguration,\
+  com.bonc.framework.swagger.config.YudaoSwaggerAutoConfiguration,\
+  com.bonc.framework.web.config.YudaoWebAutoConfiguration

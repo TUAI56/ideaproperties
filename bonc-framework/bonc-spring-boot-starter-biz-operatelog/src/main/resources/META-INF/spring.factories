@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.bonc.framework.operatelog.config.YudaoOperateLogAutoConfiguration

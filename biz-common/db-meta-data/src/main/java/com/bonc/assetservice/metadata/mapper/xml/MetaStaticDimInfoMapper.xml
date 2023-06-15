@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaStaticDimInfoMapper">
+
+    <resultMap id="MetaStaticDimInfoResultMap" type="com.bonc.assetservice.metadata.entity.MetaStaticDimInfo">
+        <id column="id" property="id"/>
+        <result column="dim_info_id" property="dimInfoId"/>
+        <result column="dim_code" property="dimCode"/>
+        <result column="dim_name" property="dimName"/>
+        <result column="dim_sort" property="dimSort"/>
+        <result column="is_valid" property="isValid"/>
+    </resultMap>
+
+    <insert id="insertDimValue">
+        insert into meta_static_dim_info (id,dim_info_id,dim_code,dim_name,is_valid)
+        values
+        <foreach collection="list" item="data" separator=",">
+        (#{data.id},#{data.dimInfoId},#{data.dimCode},#{data.dimName},#{data.isValid})
+        </foreach>
+    </insert>
+
+</mapper>

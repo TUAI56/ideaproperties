@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonc.assetservice.apiserver.server.assetinfo.mapper.AssetRegisterTableMapper">
+
+    <delete id="deleteAssetCol">
+        delete from mid_md_asset_col;
+        delete from md_asset_info_mq;
+    </delete>
+
+
+    <insert id="insertDataPackageMsg" >
+        insert into md_datapackage_msg(
+        OID,SYSTEM_ID ,DATA_CODE ,DATA_NAME ,DATA_INTERVAL ,ROW_COUNT ,DATA_SIZE ,DATA_UNIT ,VALI_TIME ,DOMAIN_ID ,VALI_DATE ,BU_CONCACT_MAN ,BU_CONCACT_MAIL ,BU_CONCACT_PHONE ,DELETE_FLAG ,END_TIME ,REGI_TYPE ,DATA_BLOCK ,IS_MASTER ,PRIORITY ,ROW_LIMIT ,COL_LIMIT ,IMPORTANT ,COLLECT_FREQUENCY ,LOADTYPE ,IS_PRIMARY ,TABLE_TYPE,prov_id
+        )values(
+        #{msg.oid},#{msg.systemId},#{msg.dataCode},#{msg.dataName},#{msg.dataInterval},#{msg.rowCount},#{msg.dataSize},#{msg.dataUnit},#{msg.valiTime},#{msg.domainId},#{msg.valiDate},#{msg.buConcactMan},#{msg.buConcactMail},#{msg.buConcactPhone},#{msg.deleteFlag},#{msg.endTime},#{msg.regiType},#{msg.dataBlock},#{msg.isMaster},#{msg.priority},#{msg.rowLimit},#{msg.colLimit},#{msg.important},#{msg.collectFrequency},#{msg.loadtype},#{msg.isPrimary},#{msg.tableType},#{msg.provId}
+        )
+    </insert>
+    <insert id="insertDataPackageMsgRel">
+        insert into md_datapackage_rel(data_id,OID)values(
+        #{dataId},#{oid}
+        )
+    </insert>
+
+    <select id="selectDatapackageMsgRelOidByAssetId" resultType="java.lang.String">
+        select distinct data_id from md_datapackage_rel where oid=#{oid}
+    </select>
+
+    <select id="selectDatapackageMsgCodeByDataId" resultType="java.lang.String">
+        select distinct data_code from md_datapackage_msg where OID=#{dataId}
+    </select>
+
+    <update id="updateCodeByOid">
+        update md_asset_table_col set pysi_table=concat(#{code},'_',#{interval}) where data_id=#{dataId};
+        update meta_struct_field_current set table_id=concat(#{code},'_',#{interval}) where data_id=#{dataId};
+        update md_store_rule set pysical_table=#{code} where data_id=#{dataId};
+        update ${tableName} set table_name=#{code} where oid=#{dataId};
+    </update>
+
+
+    <insert id="insertStoreRule">
+        INSERT INTO MD_STORE_RULE(oid, data_id, store_type, distribute_type, distribute_table, distribute_colun, pysical_table,
+                                create_shell, delete_flag, distribute_area, resource_id, vali_time, end_time, owner, prov_id)
+        SELECT T.OID1,
+               T.OID                       DATA_ID,
+               2                        AS STORE_TYPE,
+               1                        AS DISTRIBUTE_TYPE,
+               NULL                     AS DISTRIBUTE_TABLE,
+               NULL                     AS distribute_colun,
+               T.DATA_CODE,
+               NULL                     AS CREATE_SHELL,
+               '0'                      AS DELETE_FLAG,
+               NULL                     AS DISTRIBUTE_AREA,
+               concat('db', T.prov_id)  AS RESOURCE_ID,
+               T.VALI_TIME,
+               T.END_TIME,
+               CONCAT('DC_', T.prov_id) AS OWNER,
+               T.prov_id
+        FROM (SELECT CONCAT('SR_', SUBSTR(OID, 4)) AS OID1,
+                     OID,
+                     DATA_CODE,
+                     VALI_TIME,
+                     END_TIME,
+                     prov_id
+              FROM MD_DATAPACKAGE_MSG
+              WHERE OID = #{dataId}
+             ) T
+                 LEFT JOIN (SELECT DISTINCT DATA_ID
+                            FROM MD_STORE_RULE
+        ) T1 ON T.OID = T1.DATA_ID
+        WHERE T1.DATA_ID IS NULL
+    </insert>
+
+
+    <insert id="insertStructFieldCurrent">
+        INSERT INTO META_STRUCT_FIELD_CURRENT
+            (OID,FIELD_CODE,FIELD_NAME,FIELD_TYPE,TABLE_ID,IS_PRIMARYKEY,FIELD_LENGTH,FIELD_PRECITION,DELETE_FLAG,COMMENTS,ORD,VALUE_TYPE,ORIGINAL_FIELD,VALID_TIME,INVALID_TIME,IF_VALID,DATA_ID,prov_id)
+             SELECT concat('FCOL',NEXTVAL('seq_function')) AS OID,
+                           am.asset_code FIELD_CODE,
+                           am.asset_name FIELD_NAME,
+                           am.field_type FIELD_TYPE,
+                           CONCAT(dm.DATA_CODE,'_',dm.DATA_INTERVAL) AS TABLE_ID,
+                           am.is_primarykey IS_PRIMARYKEY,
+                           am.field_length FIELD_LENGTH,
+                           null AS FIELD_PRECITION,
+                           '0' AS DELETE_FLAG,
+                           am.remark COMMENTS,
+                           am.order_no AS ORD,
+                           0 AS VALUE_TYPE,
+                           am.asset_code AS ORIGINAL_FIELD,
+                           CASE WHEN am.DATA_INTERVAL in('RD','D')
+                            THEN date(am.valid_time)
+                            WHEN am.DATA_INTERVAL = 'M'
+                            THEN date(am.valid_time)<!--todo-->
+                            END AS VALID_TIME,
+                           date(am.end_time) INVALID_TIME,
+                           '1' IF_VALID,
+                           am.data_id AS DATA_ID,
+                           dm.prov_id
+                    FROM md_asset_info_mq am,md_datapackage_msg dm
+                    where am.data_id=#{dataId} and dm.oid=am.data_id
+    </insert>
+    <insert id="insertAssetTableCol">
+        INSERT INTO md_asset_table_col(oid,asset_id,pysi_table,table_type,foid,valid_time,invalid_time,if_valid,
+        data_id,prov_id)
+        SELECT NEXTVAL('seq_function'),
+           t1.field_code  ASSET_ID,
+           t1.table_id AS pysi_table,
+           '逻辑表'     TABLE_TYPE,
+           t1.OID      as FOID,
+           t1.VALID_TIME,
+           t1.INVALID_TIME,
+           '1'            IF_VALID,
+           t1.data_id     DATA_ID,
+           t1.prov_id
+            FROM (select dm.prov_id, am.table_id, am.oid, am.valid_time, am.invalid_time, am.data_id, am.field_code
+            from meta_struct_field_current am,
+                 md_datapackage_msg dm
+          where am.data_id = #{dataId}
+            and dm.oid = am.data_id
+            ) t1
+          inner join md_asset_info_mq mm on mm.data_id = t1.data_id and mm.asset_code = t1.field_code
+
+    </insert>
+
+
+    <!--更新-->
+    <update id="updateDataPackageMsg">
+        update  md_datapackage_msg set DELETE_FLAG=1,END_TIME=CURRENT_TIMESTAMP() where DATA_CODE=#{tableCode}
+    </update>
+
+    <update id="updateStructFieldCurrentByFields">
+        update md_asset_table_col set if_valid=0,invalid_time=CURRENT_TIMESTAMP() where foid in
+        (
+        select oid from meta_struct_field_current where field_code not in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and data_id=#{dataId}
+        )
+        and data_id=#{dataId};
+        update meta_struct_field_current set if_valid=0,invalid_time=CURRENT_TIMESTAMP() where field_code not in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and data_id=#{dataId};
+    </update>
+
+
+
+    <select id="selectStructFieldCurrentByDataId" resultType="string">
+        select
+        field_code
+        from meta_struct_field_current
+        where data_id=#{dataId} and if_valid='1'
+    </select>
+    <select id="selectDataIdByTableAssetId" resultType="java.lang.String">
+        select OID from md_datapackage_msg where SYSTEM_ID=#{tableAssetId} limit 1
+    </select>
+
+    <insert id="insertTmpAssetInfos">
+        insert into md_asset_info_mq (
+        data_id,asset_id,asset_code,asset_name,asset_types,field_type,field_length,domain_id,grp_id,valid_time,end_time,remark,technology_desc,data_interval,person_in_charge,contact_info,kpi_unit_type,kpi_unit,order_no,approval,operator,insert_time,is_new,security_level,is_primarykey
+        )
+        values
+        <foreach collection="infos" item="info" index="index" separator=",">
+            (
+            #{info.dataId},#{info.assetId},#{info.assetCode},#{info.assetName},#{info.assetTypes},#{info.fieldType},#{info.fieldLength},#{info.domainId},#{info.grpId},#{info.valiTime},#{info.endTime},#{info.remark},#{info.technologyDesc},#{info.dataInterval},#{info.personInCharge},#{info.contactInfo},#{info.kpiUnitType},#{info.kpiUnit},#{info.orderNo},'1',null,CURRENT_TIMESTAMP(),'1',#{info.securityLevel},#{info.isPrimarykey}
+            )
+        </foreach>
+    </insert>
+
+
+    <update id="updateDataPackageMsgByAssetId">
+        update md_datapackage_msg set
+        DATA_CODE=#{dataCode},
+        DATA_NAME=#{dataName},
+        DATA_INTERVAL=#{dataInterval},
+        VALI_TIME=#{valiTime},
+        DOMAIN_ID=#{domainId},
+        BU_CONCACT_MAN=#{buConcactMan},
+        BU_CONCACT_MAIL=#{buConcactMail},
+        BU_CONCACT_PHONE=#{buConcactPhone} ,
+        END_TIME=#{endTime},
+        REGI_TYPE=#{regiType},
+        DATA_BLOCK=#{dataBlock},
+        IS_MASTER=#{isMaster},
+        PRIORITY=#{priority},
+        ROW_LIMIT=#{rowLimit},
+        COL_LIMIT=#{colLimit},
+        COLLECT_FREQUENCY=#{collectFrequency},
+        LOADTYPE=#{loadtype} ,
+        IS_PRIMARY=#{isPrimary},
+        TABLE_TYPE=#{tableType},
+        prov_id=#{provId}
+        where oid=#{oid}
+    </update>
+
+
+
+
+
+    <select id="selectDomainIdByName" resultType="java.lang.String">
+        select g.oid  from md_domain_define g where g.name=#{domainName} limit 1
+    </select>
+
+
+    <insert id="insertInterfaceConfig">
+        insert into ${tableName}(
+        interface_id,oid,interface_fn,interface_cn,valid_id,table_name,interface_desc,ifs_acquisition_cycle,acquisition_begin,acquisition_temergency,acquisition_deadline,criterion_seq,criterion_desc,database_name,date_format,local_path,remote_path,remote_addr,remote_port,remote_prot,field_separator,row_separator
+        ) values
+        <foreach collection="configs" item="config" index="index" separator=",">
+            (
+            #{config.interfaceId},#{config.oid},#{config.interfaceFn},#{config.interfaceCn},#{config.validId},#{config.tableName},#{config.interfaceDesc},#{config.ifsAcquisitionCycle},#{config.acquisitionBegin},#{config.acquisitionTemergency},#{config.acquisitionDeadline},#{config.criterionSeq},#{config.criterionDesc},#{config.databaseName},#{config.dateFormat},#{config.localPath},#{config.remotePath},#{config.remoteAddr},#{config.remotePort},#{config.remoteProt},#{config.fieldSeparator},#{config.rowSeparator}
+            )
+        </foreach>
+    </insert>
+    <delete id="deleteInterfaceConfig">
+        delete from ${tableName} where oid =#{dataId}
+    </delete>
+
+    <insert id="insertRange" parameterType="com.bonc.assetservice.assetsync.model.MdDatapackageRange">
+    insert into md_datapackage_range (data_id, prov_range_id, prov_id
+      )
+    values (#{range.dataId,jdbcType=VARCHAR}, #{range.provRangeId,jdbcType=VARCHAR}, #{range.provId,jdbcType=VARCHAR}
+      )
+  </insert>
+    <delete id="deleteRange">
+        delete from md_datapackage_range where data_id=#{dataId}
+    </delete>
+
+
+    <!--mq日志-->
+
+    <update id="updateMqLog" parameterType="com.bonc.assetservice.metadata.entity.MetaAssetMqLog">
+        update meta_asset_mq_log
+        <set>
+            <if test="log.msg != null">
+                msg = #{log.msg,jdbcType=VARCHAR},
+            </if>
+            <if test="log.status != null">
+                `status` = #{log.status,jdbcType=VARCHAR},
+            </if>
+            <if test="log.classes != null">
+                classes = #{log.classes,jdbcType=VARCHAR},
+            </if>
+            <if test="log.isAllow != null">
+                is_allow = #{log.isAllow,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dataId != null">
+                data_id = #{log.dataId,jdbcType=VARCHAR},
+            </if>
+            <if test="log.assetName != null">
+                asset_name = #{log.assetName,jdbcType=VARCHAR},
+            </if>
+            <if test="log.createDate != null">
+                create_date = #{log.createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.updateDate != null">
+                update_date = #{log.updateDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.assetJson != null">
+                asset_json = #{log.assetJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.filedJson != null">
+                filed_json = #{log.filedJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dimJson != null">
+                dim_json = #{log.dimJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.exceptionMsg != null">
+                exception_msg = #{log.exceptionMsg,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where oid = #{log.oid,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

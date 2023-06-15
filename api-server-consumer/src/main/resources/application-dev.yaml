@@ -1,0 +1,113 @@
+server:
+  port: 8091
+spring:
+  application:
+    name: api-server-consumer
+  main:
+    allow-circular-references: true # 允许循环依赖，因为项目是三层架构，无法避免这个情况。
+  datasource:
+    druid: # Druid 【监控】相关的全局配置
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+        allow: # 设置白名单，不填则允许所有访问
+        url-pattern: /druid/*
+        login-username: bonc
+        login-password: boncadmin
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true # 慢 SQL 记录
+          slow-sql-millis: 100
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+    dynamic: # 多数据源配置
+      druid: # Druid 【连接池】相关的全局配置
+        initial-size: 5 # 初始连接数
+        min-idle: 10 # 最小连接池数量
+        max-active: 20 # 最大连接池数量
+        max-wait: 600000 # 配置获取连接等待超时的时间，单位：毫秒
+        time-between-eviction-runs-millis: 60000 # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位：毫秒
+        min-evictable-idle-time-millis: 300000 # 配置一个连接在池中最小生存的时间，单位：毫秒
+        max-evictable-idle-time-millis: 900000 # 配置一个连接在池中最大生存的时间，单位：毫秒
+        validation-query: SELECT 1 FROM DUAL # 配置检测连接是否有效
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
+      primary: apiserver
+      datasource:
+        apiserver:
+          url: jdbc:mysql://10.125.21.170:3306/api_server?allowMultiQueries=true&useUnicode=true&useSSL=false&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&autoReconnect=true&nullCatalogMeansCurrent=true # MySQL Connector/J 8.X 连接的示例
+          username: ENC(agT557PVZ/5F8Ql3aL6cmCcnl/2d+mTR)
+          password: ENC(Xy4Hh1RoMyu67BhQ/w4kIqFwCkheOhxf)
+        adb:
+          url: jdbc:mysql://10.177.64.78:3000/dc_hh_ser_prod_000_tag?characterEncoding=UTF-8&useUnicode=true&useSSL=false # MySQL Connector/J 8.X 连接的示例
+          username: ENC(EGAy4z9bdMDxUjOPhlglGg==)
+          password: ENC(sHbH7ONxStjofUblPdyY47PJzF3QCUL58S0yQBOSL3Y=)
+  redis:
+    password: ENC(//MomNEaC8SK1cdqknXi0Js28BDDE1PW)
+    database: 0
+    pool:
+      max-idle: 8
+      min-idle: 0
+      max-active: 8
+      max-wait: -1
+    sentinel:
+      master: label-redis
+      nodes: 10.125.11.126:32793,10.125.11.125:32611,10.125.11.124:32874
+  #################### rocketmq相关配置 ####################
+rocketmq:
+  #消费者相关配置
+  name-server: 10.125.119.11:9876
+  consumerGroup: GID_API_SERVER_GROUP
+  topic: ASYNC_QUERY_SQL
+  consumer:
+    accessKey: ENC(fT3CWt9GDRCTMxTyZsrSF1aIP/LEzspfPJGlaE/RglY=)
+    secretKey: ENC(rNSB+VdDlvg8D8u1vVtSVdZXvt1N3lA/A1zD+zhPbHZxYPBKgN2e3g==)
+  datasetupddatatopic: DATASET_UPDDATA
+  upddataConsumerGroup: GID_API_CONSUMER_UPDDATA_DATASET
+
+  #生产者相关配置
+  nameSrvSend: 10.125.119.11:9876
+  producerGroup: GID_SERVICE_CALLER_GROUP
+  accessKey: ENC(fT3CWt9GDRCTMxTyZsrSF1aIP/LEzspfPJGlaE/RglY=)
+  secretKey: ENC(rNSB+VdDlvg8D8u1vVtSVdZXvt1N3lA/A1zD+zhPbHZxYPBKgN2e3g==)
+  async-query-status-topic: ASYNC_QUERY_STATUS
+  upddataset-query-status-topic: UPDDATASET_QUERY_STATUS
+
+aes:
+  key: Bonc_123456789ab
+file:
+  dbpath: /tmp/
+  serpath: /root/
+hdfs:
+  uri: hdfs://10.177.74.192:8020
+  user: hh_ser_prod_000_tag_1
+  path: /tenants/hh_ser_prod_000_tag_1/work/hh_ser_prod_000_tag_1_push/adb_data/
+importparams:
+  jar_path: D:\lzk\adb-import-tool.jar
+  host: host
+  port: 3306
+  user: adbuser
+  password: pwd
+  database: dbname
+  encryptPassword: false
+  concurrency: 40
+  batchSize: 2048
+  encoding: UTF-8
+  lineSeparator: '\\n'
+  delimiter: ','
+  maxConcurrentNumOfFilesToImport: 64
+  nullAsQuotes: false
+  printRowCount: false
+  failureSqlPrintLengthLimit: 2000
+  disableInsertOnlyPrintSql: false
+  skipHeader: false
+  windowSize: 128
+  escapeSlashAndSingleQuote: true
+  ignoreErrors: false
+  printErrorSql: true
+  printErrorStackTrace: true

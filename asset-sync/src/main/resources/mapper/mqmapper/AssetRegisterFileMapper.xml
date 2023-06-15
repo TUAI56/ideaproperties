@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonc.assetservice.apiserver.server.assetinfo.mapper.AssetRegisterFileMapper">
+
+    <delete id="deleteAssetCol">
+        delete     from mid_md_asset_col;
+        delete     from md_asset_info_mq;
+    </delete>
+
+    <select id="selectDatapackageMsgOidByAssetId" resultType="java.lang.String">
+        select distinct data_id
+        from md_datapackage_rel
+        where oid = #{oid}
+    </select>
+    <select id="selectDatapackageMsgDataIntervalByOid" resultType="java.lang.String">
+        select data_interval
+        from md_datapackage_msg
+        where oid = #{dataId}
+        limit 1
+    </select>
+    <select id="selectDatapackageMsgTableTypeByOid" resultType="java.lang.String">
+        select TABLE_TYPE
+        from md_datapackage_msg
+        where oid = #{dataId}
+        limit 1
+    </select>
+    <select id="selectDatapackageMsgProvIdByOid" resultType="java.lang.String">
+        select prov_id
+        from md_datapackage_msg
+        where oid = #{dataId}
+        limit 1
+    </select>
+    <select id="selectDatapackageMsgValiTimeByOid" resultType="java.util.Date">
+        select VALI_TIME
+        from md_datapackage_msg
+        where oid = #{dataId}
+        limit 1
+    </select>
+
+
+    <insert id="insertAssetInfo">
+        INSERT INTO MD_ASSET_INFO
+        (ASSET_ID, ASSET_TYPES, ASSET_CODE, ASSET_NAME, DOMAIN_ID, REGI_MAN, REGI_DATE, VALI_TIME, END_TIME,
+         DELETE_FLAG,
+         GRP_ID, REMARK, FIELD_TYPE, FIELD_LENGTH, SECURITY_LEVEL, DESCONDID, ENCCONDID, REGI_TYPE, RELA_ID,
+         DATA_INTERVAL,
+         PERSON_IN_CHARGE, CONTACT_INFO, TECHNOLOGY_DESC, FULL_TECHNOLOGY_DESC, prov_id)
+        SELECT T.ASSET_ID,
+               T.ASSET_TYPES,
+               T.ASSET_CODE,
+               T.ASSET_NAME,
+               T.DOMAIN_ID,
+               'admin',
+               CURRENT_TIMESTAMP(),
+               T.VALID_TIME,
+               T.END_TIME,
+               '0',
+               T.GRP_ID,
+               T.REMARK,
+               T.FIELD_TYPE,
+               T.FIELD_LENGTH,
+               T.SECURITY_LEVEL,
+               ''                    DESCONDID,
+               ''                    ENCCONDID,
+               '0'                   REGI_TYPE,
+               SUBSTR(T.ASSET_ID, 2) RELA_ID,
+               T.DATA_INTERVAL,
+               T.PERSON_IN_CHARGE,
+               T.CONTACT_INFO,
+               T.TECHNOLOGY_DESC,
+               '' AS                 FULL_TECHNOLOGY_DESC,
+               T.prov_id
+        FROM (SELECT info.*, msg.prov_id
+              FROM md_asset_info_mq info,
+                   md_datapackage_msg msg
+              WHERE 1 = 1
+                AND DATA_ID = #{dataId}
+                and msg.oid = info.data_id
+                AND APPROVAL = '1') T
+                 LEFT JOIN(SELECT DISTINCT ASSET_ID
+                           FROM MD_asset_INFO) T1
+                          ON T.ASSET_ID = T1.ASSET_ID
+        WHERE T1.ASSET_ID IS NULL
+    </insert>
+    <insert id="insertMidAssetCol">
+        INSERT INTO
+        MID_MD_asset_COL(asset_id,asset_code,data_id,data_code,data_name,data_interval,sort,valid_time,invalid_time,insert_time)
+        select T1.ASSET_ID,
+        T1.ASSET_CODE,
+        T2.OID,
+        T2.DATA_CODE,
+        T2.DATA_NAME,
+        T2.DATA_INTERVAL,
+        T1.ORDER_NO,
+        CASE WHEN T2.DATA_INTERVAL = 'RD'
+        THEN STR_TO_DATE(DATE_FORMAT(T1.valid_time,'%Y%m%d'),'%Y%m%d')
+        WHEN T2.DATA_INTERVAL = 'D'
+        THEN STR_TO_DATE(DATE_FORMAT(T1.valid_time,'%Y%m%d'),'%Y%m%d')
+        WHEN T2.DATA_INTERVAL = 'M'
+        THEN STR_TO_DATE(DATE_FORMAT(T1.valid_time,'%Y%m'),'%Y%m')
+        END AS VALID_TIME,
+        STR_TO_DATE(INVALID_TIME,'%Y%m%d'),
+        T1.INSERT_TIME
+        from (SELECT DATA_ID,
+        ASSET_ID,
+        ASSET_CODE,
+        ORDER_NO,
+        VALID_TIME,
+        INSERT_TIME
+        FROM md_asset_info_mq
+        WHERE APPROVAL = '1')T1
+        INNER JOIN(SELECT
+        OID,
+        DATA_CODE,
+        DATA_NAME,
+        DATA_INTERVAL,
+        CASE WHEN DATA_INTERVAL = 'RD' THEN DATE_FORMAT(END_TIME<!--CURRENT_TIMESTAMP()-->,'%Y%m%d')
+        WHEN DATA_INTERVAL = 'D' THEN DATE_FORMAT(DATE_SUB(END_TIME,INTERVAL 1 DAY),'%Y%m%d')
+        WHEN DATA_INTERVAL = 'M' THEN DATE_FORMAT(last_day(DATE_SUB(END_TIME,INTERVAL 1 MONTH)),'%Y%m%d')
+        END AS INVALID_TIME
+        FROM MD_DATAPACKAGE_MSG
+        WHERE OID = #{dataId})T2
+        ON T1.DATA_ID = T2.OID
+    </insert>
+
+    <insert id="insertAssetRegionIsField">
+        INSERT INTO md_asset_region(oid, asset_id, system_id, data_id, data_name, delete_flag, system_name, sort,
+                                    valid_time, invalid_time, if_valid, prov_id)
+        SELECT CONCAT('RNAM', NEXTVAL('seq_function')),
+               T1.ASSET_ID,
+               'SM1101',
+               T1.DATA_ID,
+               T1.DATA_NAME,
+               0           delete_flag,
+               '',
+               T1.order_no SORT,
+               T1.VALID_TIME,
+               T1.end_time INVALID_TIME,
+               '1',
+               T1.prov_id
+        FROM (select am.asset_id,
+                     am.data_id,
+                     dm.DATA_NAME,
+                     am.order_no,
+                     am.valid_time,
+                     am.end_time,
+                     dm.prov_id
+              from md_asset_info_mq am,
+                   md_datapackage_msg dm
+              where am.data_id = dm.oid) T1
+    </insert>
+
+    <insert id="insertAssetMapping">
+        INSERT INTO md_asset_mapping(asset_id_origin, asset_id_mapping, data_code, data_interval, data_id)
+        select A1.*
+        from (select T1.ASSET_ID ASSET_ID_ORIGIN,
+                     T2.ASSET_ID ASSET_ID_MAPPING,
+                     T1.DATA_CODE,
+                     T1.DATA_INTERVAL,
+                     T1.DATA_ID
+              from (
+                       SELECT T0.*
+                       FROM (
+                                SELECT IF(@p = T.ASSET_CODE, @r := @r + 1, @r := 1) as rn,
+                                       T.*,
+                                       @p := T.ASSET_CODE
+                                FROM (select ASSET_ID,
+                                             ASSET_CODE,
+                                             DATA_ID,
+                                             DATA_CODE,
+                                             DATA_INTERVAL
+                                      from MID_MD_asset_COL
+                                         , (select @p := NULL, @r := 0) r
+                                      order by asset_code,
+                                               ASSET_ID ASC,
+                                               INSERT_TIME ASC) T) T0
+                       WHERE T0.rn = 1
+                   ) T1
+                       INNER JOIN (select *
+                                   from (
+                                            SELECT IF(@p = T.ASSET_CODE, @r := @r + 1, @r := 1) as rn,
+                                                   T.*,
+                                                   @p := T.ASSET_CODE
+                                            FROM (select ASSET_ID,
+                                                         ASSET_CODE,
+                                                         DATA_ID,
+                                                         DATA_CODE,
+                                                         DATA_INTERVAL
+                                                  from MID_MD_asset_COL
+                                                     , (select @p := NULL, @r := 0) r
+                                                  order by asset_code,
+                                                           ASSET_ID ASC,
+                                                           INSERT_TIME ASC) T
+                                        ) T0
+                                   WHERE T0.RN > 1) T2
+                                  ON T1.ASSET_CODE = T2.ASSET_CODE) A1
+                 LEFT JOIN (SELECT ASSET_ID_MAPPING, DATA_ID
+                            FROM md_asset_mapping
+        ) A2 ON A1.ASSET_ID_MAPPING = A2.ASSET_ID_MAPPING
+            AND A1.DATA_ID = A2.DATA_ID
+        WHERE A2.ASSET_ID_MAPPING IS NULL
+    </insert>
+    <insert id="insertStructFieldCurrent">
+        INSERT INTO META_STRUCT_FIELD_CURRENT
+        (OID,FIELD_CODE,FIELD_NAME,FIELD_TYPE,TABLE_ID,IS_PRIMARYKEY,FIELD_LENGTH,FIELD_PRECITION,DELETE_FLAG,COMMENTS,ORD,VALUE_TYPE,ORIGINAL_FIELD,VALID_TIME,INVALID_TIME,IF_VALID,DATA_ID,prov_id)
+        SELECT concat('FCOL',NEXTVAL('seq_function')) AS OID,
+        am.asset_code FIELD_CODE,
+        am.asset_name FIELD_NAME,
+        am.field_type FIELD_TYPE,
+        CONCAT(dm.DATA_CODE,'_',dm.DATA_INTERVAL) AS TABLE_ID,
+        am.is_primarykey IS_PRIMARYKEY,
+        am.field_length FIELD_LENGTH,
+        null AS FIELD_PRECITION,
+        '0' AS DELETE_FLAG,
+        am.remark COMMENTS,
+        am.order_no AS ORD,
+        0 AS VALUE_TYPE,
+        am.asset_code AS ORIGINAL_FIELD,
+        CASE WHEN am.DATA_INTERVAL in('RD','D')
+        THEN date(am.valid_time)
+        WHEN am.DATA_INTERVAL = 'M'
+        THEN date(am.valid_time)<!--todo-->
+        END AS VALID_TIME,
+        date(am.end_time) INVALID_TIME,
+        '1' IF_VALID,
+        am.data_id AS DATA_ID,
+        dm.prov_id
+        FROM md_asset_info_mq am,md_datapackage_msg dm
+        where am.data_id=#{dataId} and dm.oid=am.data_id
+    </insert>
+    <insert id="insertAssetTableCol">
+        INSERT INTO md_asset_table_col(oid, asset_id, pysi_table, table_type, foid, valid_time, invalid_time, if_valid,
+                                       data_id, prov_id)
+        SELECT NEXTVAL('seq_function'),
+               mm.asset_id    ASSET_ID,
+               t1.table_id AS pysi_table,
+               '逻辑表'          TABLE_TYPE,
+               t1.OID      as FOID,
+               t1.VALID_TIME,
+               t1.INVALID_TIME,
+               '1'            IF_VALID,
+               t1.data_id     DATA_ID,
+               t1.prov_id
+        FROM (select am.prov_id, am.table_id, am.oid, am.valid_time, am.invalid_time, am.data_id, am.field_code
+              from meta_struct_field_current am
+              where am.data_id = #{dataId}
+             ) t1
+                 inner join md_asset_info_mq mm on t1.data_id = mm.data_id and t1.field_code = mm.asset_code
+
+    </insert>
+
+    <insert id="insertStandKpiCurrent">
+        INSERT INTO META_STAND_KPI_CURRENT(asset_id, kpi_unit, oid, prov_id)
+        SELECT T.ASSET_ID,
+               T.INDEX_UNITTYPE KPI_UNIT,
+               CONCAT('KPI_', SUBSTR(T.ASSET_ID, 2)),
+               T.prov_id
+        FROM (SELECT A.ASSET_ID,
+                     A.KPI_UNIT_TYPE INDEX_UNITTYPE,
+                     A.KPI_UNIT      INDEX_UNIT,
+                     A.DATA_ID,
+                     msg.prov_id
+              FROM md_asset_info_mq A,
+                   md_datapackage_msg msg
+              WHERE A.ASSET_TYPES IN ('1', '21')
+                AND A.KPI_UNIT_TYPE IS NOT NULL
+                AND A.DATA_ID = #{dataId}
+                and msg.oid = A.data_id
+                AND A.APPROVAL = '1') T
+                 LEFT JOIN
+             (SELECT asset_ID
+              FROM META_STAND_KPI_CURRENT
+             ) T1 ON T.ASSET_ID = T1.asset_ID
+        WHERE T1.asset_ID IS NULL
+    </insert>
+    <insert id="insertDimensionCurrent">
+        INSERT INTO META_DIMENSION_CURRENT(asset_id, delete_flag, time_format, src_table, query_condition, parent_dim,
+                                           oid, asset_code, asset_name, resource_id, max_lev_no, prov_id)
+        SELECT T.ASSET_ID,
+               '0',
+               'YYYY/MM/DD',
+               concat('dc_', concat(T.prov_id, concat('.', #{dimExtern}))),
+               '',
+               '',
+               CONCAT('DIM_', SUBSTR(T.ASSET_ID, 2)),
+               T.ASSET_CODE,
+               T.ASSET_NAME,
+               concat('db', T.prov_id),
+               (select max(lev_no) from ${dimExtern}) max_lev_no,
+               T.prov_id
+        FROM (SELECT info.ASSET_ID,
+                     info.DATA_ID,
+                     info.ASSET_CODE,
+                     info.ASSET_NAME,
+                     msg.prov_id
+              FROM md_asset_info_mq info,
+                   md_datapackage_msg msg
+              WHERE 1 = 1
+                AND DATA_ID = #{dataId}
+                and msg.oid = info.data_id
+                AND ASSET_TYPES IN ('2', '22')
+                AND APPROVAL = '1'
+             ) T
+                 LEFT JOIN
+             (SELECT asset_ID
+              FROM META_DIMENSION_CURRENT
+             ) T1 ON T.ASSET_ID = T1.asset_ID
+        WHERE T1.asset_ID IS NULL;
+        INSERT INTO META_DIMENSION_CURRENT(asset_id, delete_flag, time_format, src_table, query_condition, parent_dim,
+                                           oid, asset_code, asset_name, resource_id, max_lev_no, prov_id)
+        SELECT T.ASSET_ID,
+               '0',
+               'YYYY/MM/DD',
+               concat('dc_', concat(T.prov_id, concat('.', 'DIM_COMMON_VALUE'))),
+               concat('WHERE DIM_ID = ''', CONCAT(t.asset_id, '''')),
+               '',
+               CONCAT('DIM_', T.ASSET_ID),
+               T.ASSET_CODE,
+               T.ASSET_NAME,
+               concat('db', T.prov_id),
+               NULL,
+               T.prov_id
+        FROM (SELECT info.ASSET_ID,
+                     info.DATA_ID,
+                     info.ASSET_CODE,
+                     info.ASSET_NAME,
+                     msg.prov_id
+              FROM md_asset_info_mq info,
+                   md_datapackage_msg msg
+              WHERE 1 = 1
+                AND DATA_ID = #{dataId}
+                and msg.oid = info.data_id
+                AND ASSET_TYPES IN ('3', '23')
+                AND APPROVAL = '1'
+             ) T
+                 LEFT JOIN
+             (SELECT asset_ID
+              FROM META_DIMENSION_CURRENT
+             ) T1 ON T.ASSET_ID = T1.asset_ID
+        WHERE T1.asset_ID IS NULL
+    </insert>
+    <insert id="insertAssetGrpInfo">
+        INSERT INTO MD_ASSET_GRP_INFO(asset_id, grp_id, prov_id)
+        SELECT T.ASSET_ID, T.GRP_ID, T.prov_id
+        FROM (SELECT info.ASSET_ID,
+                     info.GRP_ID,
+                     msg.prov_id
+              FROM md_asset_info_mq info,
+                   md_datapackage_msg msg
+              WHERE 1 = 1
+                AND info.DATA_ID = #{dataId}
+                and msg.oid = info.data_id
+                AND APPROVAL = '1'
+             ) T
+                 LEFT JOIN
+             (SELECT asset_ID
+              FROM MD_ASSET_GRP_INFO
+             ) T1 ON T.ASSET_ID = T1.asset_ID
+        WHERE T1.asset_ID IS NULL
+    </insert>
+
+
+    <update id="updateFieldOffLine">
+        update md_asset_table_col set if_valid=0,invalid_time=CURRENT_TIMESTAMP() where foid in
+        (
+        select oid from meta_struct_field_current where field_code in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and data_id=#{dataId}
+        )
+        and data_id=#{dataId};
+        update meta_struct_field_current set if_valid=0,invalid_time=CURRENT_TIMESTAMP() where field_code in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and data_id=#{dataId};
+        update md_asset_info set delete_flag=1,end_time=CURRENT_TIMESTAMP() where asset_code in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and asset_id=#{assetId};
+        update md_asset_region set if_valid=0,invalid_time=CURRENT_TIMESTAMP() where asset_id =#{assetId}
+        and data_id=#{dataId};
+        delete from md_asset_grp_info where asset_id =#{assetId};
+    </update>
+
+
+    <select id="selectDataIdByTableAssetId" resultType="java.lang.String">
+        select OID
+        from md_datapackage_msg
+        where SYSTEM_ID = #{tableAssetId}
+        limit 1
+    </select>
+
+    <select id="selectcurrFieldOrder" resultType="java.lang.Integer">
+        select ord
+        from meta_struct_field_current
+        where data_id = #{dataId}
+          and field_code = #{fieldCode}
+    </select>
+
+    <select id="selectAssetInfoByAssetCode" resultType="java.lang.Integer">
+        select count(1)
+        from md_asset_info
+        where asset_id = #{assetId}
+          and delete_flag = 0
+    </select>
+
+
+    <insert id="insertAssetDOWN" useGeneratedKeys="true">
+        insert into md_asset_down(OID, ASSET_ID, ASSET_CODE, ASSET_NAME, NEW_ASSET_ID, NEW_ASSET_CODE, NEW_ASSET_NAME,
+                                  UPDATE_DATE, REMARK, STAFF_DEV_NAME, STAFF_CU_NAME, OPER_TYPE, prov_id)
+        values (NEXTVAL('seq_function'), #{down.assetId}, #{down.assetCode}, #{down.assetName}, #{down.newAssetId},
+                #{down.newAssetCode}, #{down.newAssetName}, CURRENT_TIMESTAMP(), #{down.remark}, #{down.staffDevName},
+                #{down.staffCuName}, #{down.operType}, #{down.provId})
+    </insert>
+
+
+    <insert id="insertTmpAssetInfo">
+        insert into md_asset_info_mq
+        (data_id, asset_id, asset_code, asset_name, asset_types, field_type, field_length, domain_id, grp_id,
+         valid_time, end_time, remark, technology_desc, data_interval, person_in_charge, contact_info, kpi_unit_type,
+         kpi_unit, order_no, approval, operator, insert_time, is_new, security_level, is_primarykey)
+        values (#{dataId}, #{assetId}, #{assetCode}, #{assetName}, #{assetTypes}, #{fieldType}, #{fieldLength},
+                #{domainId}, #{grpId}, #{valiTime}, #{endTime}, #{remark}, #{technologyDesc}, #{dataInterval},
+                #{personInCharge}, #{contactInfo}, #{kpiUnitType}, #{kpiUnit}, #{orderNo}, '1', null,
+                CURRENT_TIMESTAMP(), '1', #{securityLevel}, #{isPrimarykey})
+    </insert>
+
+    <insert id="insertAssetInfoBySet">
+        INSERT INTO md_asset_info
+        (ASSET_ID, ASSET_TYPES, ASSET_CODE, ASSET_NAME, DOMAIN_ID, REGI_MAN, REGI_DATE, VALI_TIME, END_TIME,
+         DELETE_FLAG, GRP_ID, REMARK, FIELD_TYPE, FIELD_LENGTH, SECURITY_LEVEL, DESCONDID, ENCCONDID, REGI_TYPE,
+         RELA_ID, DATA_INTERVAL, PERSON_IN_CHARGE, CONTACT_INFO, TECHNOLOGY_DESC,
+         FULL_TECHNOLOGY_DESC, prov_id)
+        select T.asset_id,
+               '20'             AS asset_types,
+               REPLACE(CONCAT(substr(T.DATA_CODE, INSTR(T.DATA_CODE, '_') + 1), '_', T.DATA_INTERVAL), 'DWD_',
+                       '')         asset_code,
+               CONCAT(T.DATA_NAME,
+                      CASE
+                          WHEN T.DATA_INTERVAL = 'D' THEN '（日）'
+                          WHEN T.DATA_INTERVAL = 'M' THEN '（月）'
+                          WHEN T.DATA_INTERVAL = 'RD' THEN '（实时）' END
+                   )               asset_name,
+               T.domain_id,
+               T.BU_CONCACT_MAN,
+               CURRENT_TIMESTAMP(),
+               T.VALI_TIME,
+               T.END_TIME,
+               0                AS DELETE_FLAG,
+               #{grpId}         AS GRP_ID,
+               T.DATA_NAME      AS REMARK,
+               ''               AS FIELD_TYPE,
+               ''               AS FIELD_LENGTH,
+               3                AS SECURITY_LEVEL,
+               ''               AS DESCONDID,
+               ''               AS ENCCONDID,
+               0                AS REGI_TYPE,
+               SUBSTR(T.OID, 4) AS RELA_ID,
+               T.DATA_INTERVAL,
+               '',
+               '',
+               '',
+               '',
+               T.prov_id
+        from (SELECT OID,
+                     DATA_CODE,
+                     DATA_INTERVAL,
+                     DATA_NAME,
+                     DOMAIN_ID,
+                     BU_CONCACT_MAN,
+                     VALI_TIME,
+                     END_TIME,
+                     CONCAT('AS', SUBSTR(OID, 4)) AS ASSET_ID,
+                     prov_id
+              FROM MD_DATAPACKAGE_MSG
+              WHERE TABLE_TYPE = 'T'
+                AND OID = #{dataId}) T
+                 LEFT JOIN
+             (SELECT ASSET_ID
+              FROM md_asset_info
+             ) T1 ON T.ASSET_ID = T1.ASSET_ID
+        WHERE T1.ASSET_ID IS NULL
+    </insert>
+    <insert id="insertSetDomainAndTimeSet">
+        insert into md_asset_set(asset_set_id, asset_id, sort, is_sec_pk_id, data_interval, prov_id)
+        select #{assetSetId},
+               'AU151I1',
+               '1',
+               '',
+               #{dataInterval},
+               #{provId}
+        union all
+        select #{assetSetId},
+               t.asset_id,
+               '2' as sort,
+               ''  as is_sec_pk_id,
+               #{dataInterval},
+               #{provId}
+        from (select b.asset_id
+              from md_domain_define a
+                       join md_asset_info b
+                            on a.oid = b.domain_id
+                                and a.master_id = b.asset_code
+                       join md_asset_region c
+                            on b.asset_id = c.asset_id
+                       join md_datapackage_msg d
+                            on c.data_id = d.oid
+                                and b.domain_id = d.DOMAIN_ID
+                                and d.DATA_INTERVAL = b.data_interval
+              where a.delete_flag = 0
+                and b.delete_flag = 0
+                and b.data_interval = #{dataInterval}
+                and d.is_master = 1
+                and b.prov_id = #{rang}) t
+    </insert>
+    <insert id="insertSetByInfo">
+        INSERT INTO MD_ASSET_SET(asset_set_id, asset_id, sort, is_sec_pk_id, data_interval, prov_id)
+        select CONCAT('AS', SUBSTR(dm.OID, 4)) AS ASSET_SET_ID,
+               am.asset_id,
+               am.order_no,
+               ''                              as is_sec_pk_id,
+               dm.DATA_INTERVAL,
+               dm.prov_id
+        from md_asset_info_mq am
+                 left join md_datapackage_msg dm on am.data_id = dm.OID
+        where dm.TABLE_TYPE = 'T'
+          and dm.OID = #{dataId}
+    </insert>
+
+
+    <delete id="deleteAssetRegion">
+        delete from md_asset_region where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>
+        and data_id=#{dataId};
+        delete from meta_dimension_current where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>
+    </delete>
+    <delete id="deleteAssetInfo">
+        delete from meta_stand_kpi_current where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>;
+        delete from meta_dimension_current where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>;
+        delete from MD_ASSET_GRP_INFO where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>;
+        delete from md_asset_info where asset_id in
+        <foreach collection="assetIds" close=")" open="(" separator="," item="assetId">
+            #{assetId}
+        </foreach>;
+    </delete>
+    <delete id="deleteFieldByDataIdAndFieldCode">
+        delete from meta_struct_field_current where field_code in
+        <foreach collection="fieldCodes" close=")" open="(" separator="," item="fieldCode">
+            #{fieldCode}
+        </foreach>
+        and data_id=#{dataId}
+    </delete>
+
+    <delete id="deleteOtherTableCol">
+        delete
+        from md_asset_table_col
+        where foid not in (
+            select oid
+            from meta_struct_field_current
+            where data_id = #{dataId}
+        )
+          and data_id = #{dataId};
+    </delete>
+    <delete id="deleteSetByInfo">
+        delete
+        from md_asset_set
+        where asset_id = #{assetId}
+    </delete>
+
+    <select id="selectDomainIdByName" resultType="java.lang.String">
+        select g.oid
+        from md_domain_define g
+        where g.name = #{domainName}
+        limit 1
+    </select>
+    <select id="selectGrpIdByName" resultType="java.lang.String">
+        select g.grp_id
+        from md_asset_grp g
+        where g.grp_name = #{grpName}
+        limit 1
+    </select>
+    <select id="selectAssetSetBySetId" resultType="java.lang.Integer">
+        select count(1)
+        from md_asset_set
+        where asset_set_id = #{assetSetId}
+    </select>
+
+    <!--mq日志-->
+    <update id="updateMqLog" parameterType="com.bonc.assetservice.metadata.entity.MetaAssetMqLog">
+        update meta_asset_mq_log
+        <set>
+            <if test="log.msg != null">
+                msg = #{log.msg,jdbcType=VARCHAR},
+            </if>
+            <if test="log.status != null">
+                `status` = #{log.status,jdbcType=VARCHAR},
+            </if>
+            <if test="log.classes != null">
+                classes = #{log.classes,jdbcType=VARCHAR},
+            </if>
+            <if test="log.isAllow != null">
+                is_allow = #{log.isAllow,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dataId != null">
+                data_id = #{log.dataId,jdbcType=VARCHAR},
+            </if>
+            <if test="log.assetName != null">
+                asset_name = #{log.assetName,jdbcType=VARCHAR},
+            </if>
+            <if test="log.createDate != null">
+                create_date = #{log.createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.updateDate != null">
+                update_date = #{log.updateDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.assetJson != null">
+                asset_json = #{log.assetJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.filedJson != null">
+                filed_json = #{log.filedJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dimJson != null">
+                dim_json = #{log.dimJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.exceptionMsg != null">
+                exception_msg = #{log.exceptionMsg,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where oid = #{log.oid,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

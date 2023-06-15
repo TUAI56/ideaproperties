@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaColInfoMapper">
+
+
+    <resultMap id="baseResultMap" type="com.bonc.assetservice.metadata.entity.MetaColInfo" >
+        <id column="id" property="id" />
+        <result column="col_code" property="colCode" />
+        <result column="col_name" property="colName" />
+        <result column="model_table_id" property="modelTableId" />
+        <result column="model_code" property="modelCode" />
+        <result column="col_type" property="colType" />
+        <result column="col_length" property="colLength" />
+        <result column="precisions" property="precisions" />
+        <result column="default_value" property="defaultValue" />
+        <result column="col_sort" property="colSort" />
+        <result column="tenant_code" property="tenantCode" />
+        <result column="is_paimary" property="isPaimary" />
+        <result column="online_date" property="onlineDate" />
+        <result column="offline_date" property="offlineDate" />
+        <result column="is_valid" property="isValid" />
+        <result column="comments" property="comments" />
+        <result column="business_remark" property="businessRemark" />
+        <result column="tec_remark" property="tecRemark" />
+        <result column="security_level" property="securityLevel" />
+        <result column="security_type" property="securityType" />
+        <result column="is_nullable" property="isNullable" />
+        <result column="value_type" property="valueType" />
+        <result column="value_unit" property="valueUnit" />
+        <result column="date_format" property="dateFormat" />
+        <result column="is_date" property="isDate" />
+        <result column="is_master_key" property="isMasterKey" />
+        <result column="is_area" property="isArea" />
+    </resultMap>
+
+    <sql id="baseColumn">
+      select  `id`,`col_code`,`col_name`,`model_code`,`col_type`,`col_length`,`precisions`,`default_value`/*,`col_sort`*/, `tenant_code`,`is_paimary`,`online_date`, `offline_date`,`is_valid`,`comments`,`business_remark`,`tec_remark`,`security_level`,`security_type`,`is_nullable`,`value_type`,`value_unit`,`date_format`,`is_date`,`is_master_key`,`is_area`,`table_oid`,`field_oid`
+      from  meta_col_info
+    </sql>
+
+    <insert id="insertBatch">
+        insert into meta_col_info (`col_code`,`col_name`,`model_code`,`col_type`,`col_length`,`precisions`,`default_value`,`col_sort`, `tenant_code`,`is_paimary`,`online_date`, `offline_date`,`is_valid`,`comments`,`business_remark`,`tec_remark`,`security_level`,`security_type`,`is_nullable`,`value_type`,`value_unit`,`date_format`,`is_date`,`is_master_key`,`is_area`)
+        values
+        <foreach collection="list"  item="item" separator=",">
+           (  #{item.colCode},#{item.colName}, #{item.modelCode},#{item.colType},#{item.colLength},#{item.precisions},
+              #{item.defaultValue},#{item.colSort},#{item.tenantCode},#{item.isPaimary},#{item.onlineDate},
+              #{item.offlineDate},#{item.isValid},#{item.comments},#{item.businessRemark},#{item.tecRemark},
+             #{item.securityLevel},#{item.securityType},#{item.isNullable},#{item.valueType},#{item.valueUnit},
+             #{item.dateFormat},#{item.isDate},#{item.isMasterKey},#{item.isArea}  )
+        </foreach>
+    </insert>
+
+    <update id="updateMetacolsValid">
+        update meta_col_info
+        set  is_valid=#{valid}
+        where model_code=#{modelCode} and col_code in
+        <foreach collection="cols" item="col" open="(" close=")" separator=",">
+            #{col}
+        </foreach>
+    </update>
+
+    <update id="updateModelColsValid">
+        update meta_col_info
+        set  is_valid='0'
+        where model_code=#{modelCode}
+    </update>
+
+    <select id="selectMetaColByModelAndCol"  resultMap="baseResultMap" >
+       <include refid="baseColumn" />
+       where table_oid=#{tableOid} and field_oid=#{oid} and is_valid = '1'
+    </select>
+
+</mapper>

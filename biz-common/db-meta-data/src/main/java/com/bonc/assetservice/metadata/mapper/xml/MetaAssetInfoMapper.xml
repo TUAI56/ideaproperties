@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaAssetInfoMapper">
+
+   <resultMap id="baseResultMap" type="com.bonc.assetservice.metadata.entity.MetaAssetInfo">
+       <id  column="id" property="id"/>
+       <result column="plat_asset_id" property="platAssetId" />
+       <result column="asset_code" property="assetCode" />
+       <result column="asset_name" property="assetName" />
+       <result column="model_table_id" property="modelTableId" />
+       <result column="model_code" property="modelCode" />
+       <result column="col_info_id" property="colInfoId" />
+       <result column="col_code" property="colCode" />
+       <result column="asset_type" property="assetType" />
+       <result column="business_type" property="businessType" />
+       <result column="business_type_name" property="businessTypeName" />
+       <result column="asset_interval" property="assetInterval" />
+       <result column="asset_interval_logo" property="assetIntervalLogo" />
+       <result column="business_remark" property="businessRemark" />
+       <result column="tec_remark" property="tecRemark" />
+       <result column="col_type" property="colType" />
+       <result column="col_length" property="colLength" />
+       <result column="domain_grp_id" property="domainGrpId" />
+       <result column="grp_id" property="grpId" />
+       <result column="link_dim" property="linkDim" />
+       <result column="dim_name" property="dimName" />
+       <result column="dim_code" property="dimCode" />
+       <result column="unit_code" property="unitCode" />
+       <result column="regi_man" property="regiMan" />
+       <result column="regi_date" property="regiDate" />
+       <result column="online_date" property="onlineDate" />
+       <result column="offline_date" property="offlineDate" />
+       <result column="is_valid" property="isValid" />
+       <result column="security_level" property="securityLevel" />
+       <result column="security_level_name" property="securityLevelName" />
+       <result column="security_type" property="securityType" />
+       <result column="security_type_name" property="securityTypeName" />
+       <result column="descondid" property="descondid" />
+       <result column="enccondid" property="enccondid" />
+       <result column="tenant_code" property="tenantCode" />
+       <result column="sample_data" property="sampleData" />
+       <result column="asset_version_id" property="assetVersionId" />
+       <result column="asset_version_no" property="assetVersionNo" />
+       <result column="table_oid" property="tableOid" />
+       <result column="field_oid" property="fieldOid" />
+       <result column="col_sort" property="colSort" />
+       <result column="prov_code" property="provCode" />
+       <result column="sort_field" property="sortField" />
+       <result column="sort_type" property="sortType" />
+       <result column="link_id" property="linkId" />
+   </resultMap>
+
+    <resultMap id="metaResultMap" type="com.bonc.assetservice.metadata.appmodel.LabelDetailsModel">
+        <id  column="id" property="assetId"/>
+        <result column="asset_code" property="assetCode" />
+        <result column="asset_name" property="assetName" />
+        <result column="asset_type" property="assetType" />
+        <result column="business_type" property="businessType" />
+        <result column="asset_interval" property="assetInterval" />
+        <result column="business_remark" property="businessRemark" />
+        <result column="tec_remark" property="tecRemark" />
+        <result column="dim_code" property="dimId" />
+        <result column="unit_name" property="unitName" />
+        <result column="sample_data" property="sampleData" />
+        <result column="date_code" property="latestDate" />
+        <result column="update_date" property="updateDate"/>
+    </resultMap>
+
+    <sql id="baseColumns" >
+      select   `id`,`plat_asset_id`,`asset_code`,`asset_name`,`model_code`,`col_code`,`asset_type`,`business_type`,`business_type_name`,`asset_interval`,`asset_interval_logo`,`business_remark`,`tec_remark`,`col_type`,`col_length`,`link_dim`,`dim_name`,`domain_code`,`grp_id`,`dim_grp_id`,`unit_code`,`regi_man`,`regi_date`,`online_date`, `offline_date`,`is_valid`,`security_level`,`security_level_name`,`security_type`,`security_type_name`,`descondid`,`enccondid`,`tenant_code`,`sample_data`,`asset_version_id`,`asset_version_no`,`table_oid`,`field_oid`,`col_sort`,`prov_code`,`sort_field`,`sort_type`,`link_id`
+      from meta_asset_info
+    </sql>
+
+    <select id="selectMetaAssetInfoByAssetCode"     resultMap="baseResultMap" >
+        <include refid="baseColumns" />
+        where  asset_code =#{assetCode} and is_valid = '1'
+        limit 1
+    </select>
+
+    <select id="getAssetCodeAndAcct" resultType="com.bonc.assetservice.metadata.appmodel.AssetCodeAndAcct">
+        select
+            ai.id assetId,
+            ai.model_code modelCode,
+            ai.asset_code assetCode,
+            Max( ad.date_code ) defaultAcct,
+            et.table_code tableCode
+        from meta_asset_info ai 	JOIN meta_model_table mt ON ai.model_table_id = mt.id
+                                    JOIN meta_entity_table et ON mt.id = et.model_table_id
+                                    JOIN meta_asset_date ad ON ai.id = ad.asset_info_id
+        where ai.id in (
+            <foreach item="assetId" collection="assetIds" separator=",">
+                #{assetId}
+            </foreach>
+            )
+            and ai.is_valid = '1' and mt.is_valid = '1' and et.is_valid = '1'
+        group by ai.id, ai.model_code, ai.asset_code, et.table_code
+    </select>
+
+    <select id="getTableInfosByTableCodes" resultType="com.bonc.assetservice.metadata.appmodel.ModelAndEntityTableInfo">
+        SELECT
+            tableInfo.model_code modelCode,
+            tableInfo.is_master isMaster,
+            tableInfo.table_code tableCode,
+            tableInfo.defaultAcct acct,
+            tableInfo.domain_grp_id domainGrpId
+        FROM
+            (
+                SELECT
+                    mt.model_code model_code,mt.domain_grp_id domain_grp_id, mt.is_master is_master, et.table_code table_code, MAX(td.acct_date) defaultAcct
+                FROM meta_entity_table et
+                    JOIN meta_model_table mt on et.model_table_id = mt.id and mt.is_valid = '1'
+                    LEFT JOIN meta_table_date td ON td.entity_table_id = et.id
+                WHERE et.table_code IN (
+                        <foreach item="tableCode" collection="tableCodes" separator=",">
+                            #{tableCode}
+                        </foreach>
+                        )
+                    and et.is_valid = '1'
+                GROUP BY mt.model_code, mt.is_master, et.table_code
+            ) AS tableInfo
+    </select>
+
+    <select id="getDomainMasterTableInfosByTableCodes" resultType="com.bonc.assetservice.metadata.appmodel.ModelAndEntityTableInfo">
+        SELECT
+            tableInfo.model_code modelCode,
+            tableInfo.is_master isMaster,
+            tableInfo.table_code tableCode,
+            tableInfo.defaultAcct acct,
+            tableInfo.domain_grp_id domainGrpId
+        FROM
+            (
+                SELECT
+                    mt.model_code model_code, mt.domain_grp_id domain_grp_id,mt.is_master is_master, et.table_code table_code, MAX(td.acct_date) defaultAcct
+                FROM meta_entity_table et
+                     JOIN meta_model_table mt ON et.model_table_id = mt.id and mt.is_valid = '1'
+                     LEFT JOIN meta_table_date td ON td.entity_table_id = et.id
+                WHERE mt.is_master = '1'
+                    AND mt.domain_grp_id IN (
+                        SELECT DISTINCT mt.domain_grp_id
+                        FROM meta_entity_table et
+                             JOIN meta_model_table mt ON et.model_table_id = mt.id
+                        WHERE et.table_code IN(
+                            <foreach item="tableCode" collection="tableCodes" separator=",">
+                                #{tableCode}
+                            </foreach>
+                        )
+                    )
+                GROUP BY mt.model_code, mt.is_master, et.table_code
+            ) AS tableInfo
+    </select>
+
+
+    <select id="queryAssetDetails"  resultMap="metaResultMap" >
+         SELECT
+        	a.id,
+        	a.asset_code,
+        	a.asset_name,
+        	a.sample_data,
+        	a.asset_type,
+        	a.business_type_name as business_type,
+        	IFNULL(a.dim_code,'') as dim_code,
+        	c.value_unit as unit_name,
+        	a.tec_remark,
+        	a.business_remark,
+        	a.asset_interval as asset_interval,
+        	b.date_code AS date_code,
+        	b.update_date AS update_date
+        FROM
+        	meta_asset_info a
+        	LEFT JOIN (
+        	SELECT
+				t1.asset_info_id,
+        		t1.asset_code,
+        		t1.date_code,
+        		CONVERT ( t1.update_date, DATETIME) AS update_date
+        	FROM
+        		meta_asset_date t1,
+        		( SELECT asset_code, max( date_code ) AS max_date_code FROM meta_asset_date GROUP BY asset_code ) t2
+        	WHERE
+        		t1.asset_code = t2.asset_code
+        		AND t1.date_code = t2.max_date_code
+        	) b ON a.id = b.asset_info_id and a.asset_code = b.asset_code
+        LEFT JOIN meta_col_info c on a.col_info_id = c.id
+        WHERE
+        	a.is_valid = '1'
+        AND a.id = #{assetId}
+        AND a.prov_code = #{provId}
+    </select>
+
+    <select id="selectCodeMapping" resultType="java.util.Map">
+        select indexes,
+               assets_code as assetsCode,
+               custom_code as customCode,
+               IFNULL(mapping_type,'') as `type`,
+               IFNULL(page_data,'') as pageData
+        from meta_code_mapping
+        where is_valid = '1'
+        AND assets_code is not null
+        AND assets_code!=''
+    </select>
+    <select id="selectProvCode" resultType="java.util.Map">
+        SELECT
+        	tenant_name,
+        	IFNULL(prov_id,'-1')  as prov_code
+        FROM
+        	`meta_prov_info`
+        WHERE
+        	 tenant_id = #{tenantId}
+    </select>
+    <select id="selectDimInfo" resultType="java.lang.Long">
+    SELECT
+    	id
+    FROM
+    	`meta_dim_info`
+    WHERE
+    	code_field = #{code_field}
+    	and name_field=#{name_field}
+    	and dim_table_code=#{dim_table_code}
+    </select>
+
+</mapper>

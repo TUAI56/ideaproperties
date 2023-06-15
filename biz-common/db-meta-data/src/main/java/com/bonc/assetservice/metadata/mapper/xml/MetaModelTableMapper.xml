@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaModelTableMapper">
+
+    <resultMap id="baseResultMap" type="com.bonc.assetservice.metadata.entity.MetaModelTable">
+        <id  column="id" property="id" />
+        <result column="model_code" property="modelCode" />
+        <result column="model_name" property="modelName" />
+        <result column="model_type" property="modelType" />
+        <result column="business_type" property="businessType" />
+        <result column="model_interval" property="modelInterval" />
+        <result column="tenant_code" property="tenantCode" />
+        <result column="prov_code" property="provCode" />
+        <result column="is_master" property="isMaster" />
+        <result column="it_code" property="itCode" />
+        <result column="domain_grp_id" property="domainGrpId" />
+        <result column="dw_code" property="dwCode" />
+        <result column="online_date" property="onlineDate" />
+        <result column="offline_date" property="offlineDate" />
+        <result column="is_valid" property="isValid" />
+        <result column="table_oid" property="tableOid" />
+        <result column="link_id" property="linkId" />
+    </resultMap>
+
+    <sql id="baseColumn">
+        select `id`,`model_code`,`model_name`,`model_type`,`business_type`, `model_interval`,`tenant_code`,`prov_code`,`is_master`,`it_code`,`domain_grp_id`,`dw_code`,`online_date`,`offline_date`,`is_valid`,`table_oid`,`link_id`
+        from  meta_model_table
+    </sql>
+
+    <select id="selectByMoldCode"   resultMap="baseResultMap" >
+         <include refid="baseColumn" />
+         where table_oid =#{tableOid} and is_valid = '1'
+    </select>
+
+
+
+
+</mapper>

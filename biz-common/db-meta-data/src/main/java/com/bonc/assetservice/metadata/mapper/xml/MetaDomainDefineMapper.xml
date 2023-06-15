@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaDomainDefineMapper">
+
+    <resultMap id="baseResusltMap" type="com.bonc.assetservice.metadata.entity.MetaDomainDefine">
+        <id column="id" property="id"/>
+        <result column="domain_code" property="domainCode" />
+        <result column="domain_name" property="domainName" />
+        <result column="master_id" property="masterId" />
+        <result column="remark" property="remark" />
+        <result column="valid_date" property="validDate" />
+        <result column="invalid_date" property="invalidDate" />
+        <result column="is_valid" property="isValid" />
+    </resultMap>
+
+
+    <sql id="baseColumn">
+        select `id`,`domain_code`,`domain_name`,`master_id`,`remark`,`valid_date`,`invalid_date`,`is_valid`
+        from  meta_domain_define
+    </sql>
+
+    <select id="selectDomainCodeByName" resultType="java.lang.String">
+        select domain_code  from  meta_domain_define  where domain_name=#{domainName} limit 1
+    </select>
+
+
+
+</mapper>

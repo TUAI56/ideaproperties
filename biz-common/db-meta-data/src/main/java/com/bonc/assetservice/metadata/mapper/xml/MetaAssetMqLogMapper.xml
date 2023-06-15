@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaAssetMqLogMapper">
+
+    <select id="selectDatapackageMsgOidByAssetId" resultType="java.lang.String">
+        select distinct data_id from md_datapackage_rel where oid=#{oid}
+    </select>
+
+    <!--mq日志-->
+    <insert id="insertMqLog" parameterType="com.bonc.assetservice.metadata.entity.MetaAssetMqLog">
+        insert into meta_asset_mq_log
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="log.oid != null">
+                oid,
+            </if>
+            <if test="log.msg != null">
+                msg,
+            </if>
+            <if test="log.status != null">
+                `status`,
+            </if>
+            <if test="log.classes != null">
+                classes,
+            </if>
+            <if test="log.isAllow != null">
+                is_allow,
+            </if>
+            <if test="log.dataId != null">
+                data_id,
+            </if>
+            <if test="log.assetName != null">
+                asset_name,
+            </if>
+            <if test="log.createDate != null">
+                create_date,
+            </if>
+            <if test="log.updateDate != null">
+                update_date,
+            </if>
+            <if test="log.assetJson != null">
+                asset_json,
+            </if>
+            <if test="log.filedJson != null">
+                filed_json,
+            </if>
+            <if test="log.dimJson != null">
+                dim_json,
+            </if>
+            <if test="log.exceptionMsg != null">
+                exception_msg,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="log.oid != null">
+                #{log.oid,jdbcType=VARCHAR},
+            </if>
+            <if test="log.msg != null">
+                #{log.msg,jdbcType=VARCHAR},
+            </if>
+            <if test="log.status != null">
+                #{log.status,jdbcType=VARCHAR},
+            </if>
+            <if test="log.classes != null">
+                #{log.classes,jdbcType=VARCHAR},
+            </if>
+            <if test="log.isAllow != null">
+                #{log.isAllow,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dataId != null">
+                #{log.dataId,jdbcType=VARCHAR},
+            </if>
+            <if test="log.assetName != null">
+                #{log.assetName,jdbcType=VARCHAR},
+            </if>
+            <if test="log.createDate != null">
+                #{log.createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.updateDate != null">
+                #{log.updateDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.assetJson != null">
+                #{log.assetJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.filedJson != null">
+                #{log.filedJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dimJson != null">
+                #{log.dimJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.exceptionMsg != null">
+                #{log.exceptionMsg,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateMqLog" parameterType="com.bonc.assetservice.metadata.entity.MetaAssetMqLog">
+        update meta_asset_mq_log
+        <set>
+            <if test="log.msg != null">
+                msg = #{log.msg,jdbcType=VARCHAR},
+            </if>
+            <if test="log.status != null">
+                `status` = #{log.status,jdbcType=VARCHAR},
+            </if>
+            <if test="log.classes != null">
+                classes = #{log.classes,jdbcType=VARCHAR},
+            </if>
+            <if test="log.isAllow != null">
+                is_allow = #{log.isAllow,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dataId != null">
+                data_id = #{log.dataId,jdbcType=VARCHAR},
+            </if>
+            <if test="log.assetName != null">
+                asset_name = #{log.assetName,jdbcType=VARCHAR},
+            </if>
+            <if test="log.createDate != null">
+                create_date = #{log.createDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.updateDate != null">
+                update_date = #{log.updateDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="log.assetJson != null">
+                asset_json = #{log.assetJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.filedJson != null">
+                filed_json = #{log.filedJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.dimJson != null">
+                dim_json = #{log.dimJson,jdbcType=VARCHAR},
+            </if>
+            <if test="log.exceptionMsg != null">
+                exception_msg = #{log.exceptionMsg,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where oid = #{log.oid,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

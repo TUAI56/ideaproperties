@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaDimInfoMapper">
+
+    <resultMap id="dimTableResultMap" type="com.bonc.assetservice.metadata.appmodel.DimTableModel">
+        <result column="code_field" property="code" />
+        <result column="name_field" property="name" />
+        <result column="parent_code_field" property="parentCode" />
+        <result column="sort_field" property="sort" />
+    </resultMap>
+    <resultMap id="dimFieldMap" type="com.bonc.assetservice.metadata.entity.DimField">
+        <result column="code" property="code" javaType="java.lang.String"/>
+        <result column="name" property="name" javaType="java.lang.String"/>
+    </resultMap>
+
+    <resultMap id="dimInfoResultMap" type="com.bonc.assetservice.metadata.entity.MetaDimInfo">
+        <result column="id" property="id" />
+        <result column="code_field" property="codeField" />
+        <result column="name_field" property="nameField" />
+        <result column="parent_code_field" property="parentCodeField" />
+        <result column="src_dim_table" property="srcDimTable" />
+        <result column="sort_field" property="sortField" />
+        <result column="dim_table_code" property="dimTableCode" />
+        <result column="dim_state" property="dimState" />
+    </resultMap>
+
+    <sql id="baseColumns" >
+        select id,code_field,name_field,parent_code_field,src_dim_table,sort_field,dim_table_code,dim_state
+        from meta_dim_info
+    </sql>
+
+    <select id="queryDimTableDetailsWithPage" resultMap="dimTableResultMap">
+        SELECT
+            dim_code AS code_field,
+            dim_name AS name_field,
+            '' AS parent_code_field,
+            IFNULL(dim_sort,'') AS sort_field
+        FROM meta_static_dim_info
+        WHERE dim_info_id = #{dimId}
+            AND is_valid = '1'
+            <if test="name != null and name!='' ">
+                AND dim_name like CONCAT('%',#{name},'%')
+            </if>
+            <if test="code != null and code!='' ">
+                AND dim_code like CONCAT('%',#{code},'%')
+            </if>
+    </select>
+
+    <select id="selectFieldInfo" resultMap="dimInfoResultMap">
+
+    </select>
+    <select id="getDataNum" resultType="java.lang.String">
+        ${countSql};
+    </select>
+    <select id="getPageData" resultMap="dimFieldMap">
+        ${sql}
+    </select>
+
+
+</mapper>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bonc.assetservice.metadata.mapper.MetaGrpInfoMapper">
+
+
+    <resultMap id="labelTreeMap" type="com.bonc.assetservice.metadata.appmodel.LabelTreeModel">
+        <id  column="dirId" property="dirId"  />
+        <id  column="dirName" property="dirName"  />
+        <id  column="parentDirId" property="parentDirId"  />
+        <collection property="assets" ofType="com.bonc.assetservice.metadata.appmodel.MetaAssetModel" >
+            <id  column="id" property="assetId"/>
+            <result column="asset_code" property="assetCode"/>
+            <result column="asset_name" property="assetName"/>
+            <result column="asset_type" property="assetType"/>
+            <result column="prov_code" property="provId"/>
+            <result column="business_type" property="businessType"/>
+        </collection>
+
+    </resultMap>
+    <insert id="insertGroupInfo">
+        insert into meta_grp_info (id,grp_code,grp_name,parent_id,parent_grp_code,path,domain_code,grp_sort,insert_time,id_path,level,link_id)
+        values
+        <foreach collection="list" item="data" separator=",">
+        (
+        #{data.id},
+        #{data.grp_code},
+        #{data.grp_name},
+        #{data.parent_id},
+        #{data.parent_grp_code},
+        #{data.path},
+        #{data.domain_code},
+        #{data.grp_sort},
+        now(),
+        #{data.id_path},
+        #{data.level},
+        #{data.link_id}
+        )
+        </foreach>
+    </insert>
+
+
+    <select id="queryAssetList" resultMap="labelTreeMap" >
+        SELECT
+        a.id as dirId,
+        a.grp_name as dirName,
+        a.parent_id as parentDirId,
+        b.id,
+        b.asset_code,
+        b.asset_name,
+        b.asset_type,
+        b.prov_code,
+        b.business_type_name as business_type
+        FROM
+        meta_grp_info a
+        LEFT JOIN (
+        SELECT
+        id,
+        grp_id,
+        asset_code,
+        asset_name,
+        asset_type,
+        prov_code,
+        business_type_name
+        FROM
+        meta_asset_info
+        WHERE
+        is_valid = '1'
+        <if test="provId != null">
+            AND prov_code = #{provId}
+        </if>
+        ) b ON a.id = b.grp_id
+        WHERE
+        a.parent_grp_code != '0'
+        ORDER BY
+        a.grp_sort
+    </select>
+</mapper>
